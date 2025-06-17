@@ -19,14 +19,14 @@ The engine is a disembodied mind (`engine_server.py`) that requires a body (`hyp
 
 **For Linux/macOS (bash/zsh):**
 ```bash
-git clone [https://github.com/HereLiesAz/HyperGeometricIsomorphis.git](https://github.com/HereLiesAz/HyperGeometricIsomorphis.git) && \
+git clone https://github.com/HereLiesAz/HyperGeometricIsomorphis.git && \
 cd HyperGeometricIsomorphis && \
 python engine_server.py
 ```
 
 **For Windows (PowerShell):**
 ```powershell
-git clone [https://github.com/HereLiesAz/HyperGeometricIsomorphis.git](https://github.com/HereLiesAz/HyperGeometricIsomorphis.git); cd HyperGeometricIsomorphis; python engine_server.py
+git clone https://github.com/HereLiesAz/HyperGeometricIsomorphis.git; cd HyperGeometricIsomorphis; python engine_server.py
 ```
 *(Note: The Python script will attempt to install its own dependencies (`Flask`, `Flask-Cors`, `numpy`) upon first run. If this fails due to permissions, you may need to run `pip install Flask Flask-Cors numpy` manually.)*
 
