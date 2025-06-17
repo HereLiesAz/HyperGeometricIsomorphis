@@ -1,1 +1,1 @@
-# HyperGeometricIsomorphis
+# HyperGeometrisomorphous
