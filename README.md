@@ -23,7 +23,7 @@ The engine is a disembodied mind (`engine_server.py`) that requires a body (`hyp
 **For Linux/macOS (bash/zsh):**
 
 ```
-git clone [https://github.com/HereLiesAz/HyperGeometricIsomorphis.git](https://github.com/HereLiesAz/HyperGeometricIsomorphis.git) && \
+git clone https://github.com/HereLiesAz/HyperGeometricIsomorphis.git && \
 cd HyperGeometricIsomorphis && \
 pip install Flask Flask-Cors numpy && \
 python engine_server.py
@@ -33,7 +33,7 @@ python engine_server.py
 **For Windows (PowerShell):**
 
 ```
-git clone [https://github.com/HereLiesAz/HyperGeometricIsomorphis.git](https://github.com/HereLiesAz/HyperGeometricIsomorphis.git); cd HyperGeometricIsomorphis; pip install Flask Flask-Cors numpy; python engine_server.py
+git clone https://github.com/HereLiesAz/HyperGeometricIsomorphis.git; cd HyperGeometricIsomorphis; pip install Flask Flask-Cors numpy; python engine_server.py
 
 ```
 
