@@ -1,20 +1,17 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import numpy as np
 import math
 import json
-import webbrowser
-from threading import Timer
-from flask import Flask, request, jsonify, Response
-from flask_cors import CORS
+import heapq
+import re
 import sys
 import os
+import webbrowser
+from threading import Timer
 
 # --- Engine Logic: Hyper-Geometrisomorphous ---
 class HyperGeometrisomorphous:
-    """
-    An engine that treats a string as a set of collapsed 3D point clouds (constellations),
-    finding the single most efficiently expressed path for each character's constellation
-    across all possible volumetric projections. The final blueprint is a 2D matrix (codex).
-    """
     def __init__(self, text: str):
         self.original_text = text
         self.length = len(text)
@@ -84,305 +81,166 @@ class HyperGeometrisomorphous:
         serialized_codex = "§".join(["|".join(map(str, row)) for row in codex])
         return {"engine": "hyper-geometrisomorphous", "codex": codex, "serialized_codex": serialized_codex, "original_text": self.original_text}
 
-# --- HTML/CSS/JS Frontend as a String Variable ---
-HTML_CONTENT = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyper-Geometrisomorphous Engine</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8f7f2; color: #4c4a44; }
-        .mono { font-family: 'Roboto Mono', monospace; }
-        .key-entry:hover { background-color: #e9e7e0; cursor: pointer; }
-    </style>
-</head>
-<body class="p-4 sm:p-6 lg:p-8">
-    <div class="max-w-7xl mx-auto">
-        <header class="text-center mb-10">
-            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-800">Hyper-Geometrisomorphous Engine</h1>
-            <p class="mt-2 text-lg text-slate-500">This is not compression. This is cartography.</p>
-        </header>
+# --- Engine Logic: Holographic ---
+class HolographicEngine:
+    def __init__(self, text: str):
+        self.text = text
+        self.length = len(text)
+        self.SIGIL_START_MOTIF = 0xE000
+        self.SIGIL_START_NUMERICAL = 0xF000
 
-        <main class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6 lg:p-8">
-            <div class="mb-8">
-                <h2 class="text-2xl font-bold text-slate-700 mb-2">1. Input Universe (String)</h2>
-                <p class="text-slate-500 mb-4">The engine will find the single most efficient path for each character's constellation across all volumetric projections.</p>
-                <textarea id="input-text" class="w-full h-28 p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:outline-none mono bg-slate-50" placeholder="A string with a clear 3D structure works best..."></textarea>
-                <div class="mt-4 flex items-center space-x-4">
-                    <button id="analyze-button" class="w-full sm:w-auto bg-slate-800 text-white font-bold py-2 px-8 rounded-md hover:bg-slate-900 transition-colors disabled:bg-slate-400">Generate Codex</button>
-                </div>
-            </div>
+    def _find_resonance_candidates(self):
+        candidates = []
+        max_stride = self.length // 2
+        for stride in range(1, max_stride + 1):
+            for offset in range(stride):
+                i = offset
+                while i < self.length:
+                    char = self.text[i]
+                    count = 1
+                    current_pos = i + stride
+                    while current_pos < self.length and self.text[current_pos] == char:
+                        count += 1
+                        current_pos += stride
+                    if count > 1:
+                        desc = f"({char},{stride},{count},{i})"
+                        savings = count - len(desc)
+                        if savings > 0:
+                            positions = [i + k * stride for k in range(count)]
+                            candidates.append({'type': 'resonance', 'savings': savings, 'positions': positions, 'data': {'char': char, 'stride': stride, 'count': count, 'offset': i}})
+                        i += count * stride
+                    else:
+                        i += stride
+        return candidates
 
-             <div id="progress-container" class="hidden my-6">
-                <p class="text-sm text-center text-slate-500 mb-2">Surveying the universe...</p>
-                <div class="w-full bg-slate-200 rounded-full h-2.5">
-                    <div class="bg-teal-600 h-2.5 rounded-full animate-pulse"></div>
-                </div>
-            </div>
-            
-            <div id="results-area" class="hidden">
-                <hr class="my-8 border-slate-200">
-                <h2 class="text-2xl font-bold text-slate-700 mb-6">2. The Codex</h2>
-                <div class="grid grid-cols-1 xl:grid-cols-5 gap-8">
-                    <div class="xl:col-span-3">
-                        <h3 class="text-xl font-semibold text-slate-600 mb-3">Constellation Map</h3>
-                         <p class="text-slate-500 mb-4">The original string, unrolled. Stars are colored by their character's winning algorithm. Hover over a key entry to highlight its constellation.</p>
-                        <div class="bg-slate-50 p-2 rounded-md border border-slate-200">
-                           <canvas id="visualization-canvas"></canvas>
-                        </div>
-                    </div>
-                    <div class="xl:col-span-2">
-                        <h3 class="text-xl font-semibold text-slate-600 mb-3">Blueprint</h3>
-                        <div class="space-y-6">
-                             <div class="grid grid-cols-3 gap-4 text-center border-b border-slate-200 pb-4">
-                                <div><p class="text-sm text-slate-500">Original</p><p id="original-length" class="text-2xl font-bold mono text-slate-700">-</p></div>
-                                <div><p class="text-sm text-slate-500">Encoded</p><p id="final-length" class="text-2xl font-bold mono text-slate-700">-</p></div>
-                                <div><p class="text-sm text-slate-500">Reduction</p><p id="ratio" class="text-2xl font-bold mono text-teal-600">-</p></div>
-                            </div>
-                            <div>
-                                <h4 class="font-semibold text-slate-600 mb-2">Character Algorithms</h4>
-                                <div id="key-output" class="text-sm mono space-y-1 max-h-64 overflow-y-auto pr-2 border border-slate-200 rounded-md p-3 bg-slate-50"></div>
-                            </div>
-                            <div>
-                                <h4 class="font-semibold text-slate-600 mb-2">Serialized Codex</h4>
-                                <div id="serialized-output" class="p-3 bg-slate-800 text-slate-100 border border-slate-600 rounded-md text-xs mono break-all max-h-32 overflow-y-auto"></div>
-                                <button id="reconstitute-button" class="mt-2 w-full bg-white border border-slate-300 text-slate-700 font-bold py-2 px-4 rounded-md hover:bg-slate-50 transition-colors">Reconstitute from Codex</button>
-                                <div id="reconstitution-output" class="mt-2 p-2 bg-slate-100 border border-slate-200 rounded-md text-xs mono break-all text-slate-500 hidden"></div>
-                           </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
+    def _find_motif_candidates(self):
+        candidates = []
+        counts = {}
+        max_len = min(self.length // 2, 50)
+        for length in range(max_len, 1, -1):
+            for i in range(self.length - length + 1):
+                substring = self.text[i:i+length]
+                if substring not in counts:
+                    counts[substring] = []
+                counts[substring].append(i)
+        
+        for motif, positions in counts.items():
+            if len(positions) > 1:
+                savings = (len(positions) * len(motif)) - (len(positions) + len(motif) + 1)
+                if savings > 0:
+                    all_pos = [p + i for p in positions for i in range(len(motif))]
+                    candidates.append({'type': 'motif', 'savings': savings, 'positions': all_pos, 'data': {'motif': motif}})
+        return candidates
+        
+    def _find_numerical_candidates(self):
+        candidates = []
+        for match in re.finditer(r'\d{2}', self.text):
+            num_str = match.group(0)
+            savings = 1
+            positions = list(range(match.start(), match.end()))
+            candidates.append({'type': 'numerical', 'savings': savings, 'positions': positions, 'data': {'num': num_str}})
+        return candidates
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const analyzeBtn = document.getElementById('analyze-button');
-            const inputEl = document.getElementById('input-text');
-            const progressContainer = document.getElementById('progress-container');
-            const resultsArea = document.getElementById('results-area');
+    def _huffman_encode(self, text):
+        if not text:
+            return {}, ''
+        frequency = {char: text.count(char) for char in set(text)}
+        heap = [[weight, [char, ""]] for char, weight in frequency.items()]
+        heapq.heapify(heap)
+        while len(heap) > 1:
+            lo = heapq.heappop(heap)
+            hi = heapq.heappop(heap)
+            for pair in lo[1:]: pair[1] = '0' + pair[1]
+            for pair in hi[1:]: pair[1] = '1' + pair[1]
+            heapq.heappush(heap, [lo[0] + hi[0]] + lo[1:] + hi[1:])
+        huffman_dict = dict(sorted(heapq.heappop(heap)[1:], key=lambda p: (len(p[-1]), p)))
+        encoded_text = "".join([huffman_dict[char] for char in text])
+        return huffman_dict, encoded_text
 
-            let analysisResult = null;
-            let hoveredChar = null;
+    def generate_blueprint(self):
+        resonance_candidates = self._find_resonance_candidates()
+        motif_candidates = self._find_motif_candidates()
+        numerical_candidates = self._find_numerical_candidates()
+        
+        all_candidates = resonance_candidates + motif_candidates + numerical_candidates
+        all_candidates.sort(key=lambda x: x['savings'], reverse=True)
 
-            const PALETTE = ['#0d9488', '#d97706', '#be185d', '#65a30d', '#57534e', '#8b5cf6', '#0ea5e9'];
+        final_resonances, final_motifs, final_numericals = [], {}, {}
+        claimed_positions = np.zeros(self.length, dtype=bool)
+        motif_sigil_counter, numerical_sigil_counter = 0, 0
 
-            const analyze = async () => {
-                const text = inputEl.value;
-                if (!text) return;
+        for candidate in all_candidates:
+            if not any(claimed_positions[pos] for pos in candidate['positions']):
+                for pos in candidate['positions']:
+                    claimed_positions[pos] = True
                 
-                analyzeBtn.disabled = true;
-                progressContainer.classList.remove('hidden');
-                resultsArea.classList.add('hidden');
+                if candidate['type'] == 'resonance':
+                    final_resonances.append(candidate['data'])
+                elif candidate['type'] == 'motif':
+                    sigil = chr(self.SIGIL_START_MOTIF + motif_sigil_counter)
+                    final_motifs[sigil] = candidate['data']['motif']
+                    motif_sigil_counter += 1
+                elif candidate['type'] == 'numerical':
+                    letter = chr(97 + numerical_sigil_counter)
+                    final_numericals[letter] = candidate['data']['num']
+                    numerical_sigil_counter += 1
+        
+        remnant = "".join([char for i, char in enumerate(self.text) if not claimed_positions[i]])
+        huffman_dict, encoded_remnant = self._huffman_encode(remnant)
 
-                try {
-                    const response = await fetch('http://localhost:5000/analyze', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text })
-                    });
-                    
-                    if (!response.ok) {
-                        const err = await response.json();
-                        throw new Error(err.error || 'Unknown server error');
-                    }
-                    
-                    analysisResult = await response.json();
-                    displayResults();
-                } catch (error) {
-                    alert(`Analysis failed: ${error.message}`);
-                } finally {
-                    analyzeBtn.disabled = false;
-                    progressContainer.classList.add('hidden');
-                }
-            };
-            
-            const displayResults = () => {
-                const { serialized_codex, codex, original_text } = analysisResult;
-                const algorithms = codex.slice(1);
-
-                document.getElementById('original-length').textContent = original_text.length;
-                document.getElementById('final-length').textContent = serialized_codex.length;
-                const ratio = original_text.length > 0 ? (100 * (1 - serialized_codex.length / original_text.length)).toFixed(1) : 0;
-                document.getElementById('ratio').textContent = `${ratio > 0 ? ratio : 0}%`;
-
-                const keyOutput = document.getElementById('key-output');
-                keyOutput.innerHTML = algorithms.length > 0 ? '' : '<p class="text-slate-500">None</p>';
-                
-                const charColorMap = {};
-                algorithms.forEach((algo, index) => {
-                    const [char, dims, desc] = algo;
-                    charColorMap[char] = PALETTE[index % PALETTE.length];
-                    const entry = document.createElement('div');
-                    entry.className = 'key-entry p-1 rounded transition-colors';
-                    entry.dataset.char = char;
-                    entry.innerHTML = `<span class="inline-block w-3 h-3 rounded-full mr-2" style="background-color: ${charColorMap[char]};"></span><span>'${char}' &rarr; ${dims}: ${desc.substring(0, 30)}...</span>`;
-                    entry.onmouseenter = () => { hoveredChar = char; drawVisualization(charColorMap); };
-                    entry.onmouseleave = () => { hoveredChar = null; drawVisualization(charColorMap); };
-                    keyOutput.appendChild(entry);
-                });
-                
-                document.getElementById('serialized-output').textContent = serialized_codex;
-                document.getElementById('reconstitute-button').onclick = runReconstruction;
-                document.getElementById('reconstitution-output').classList.add('hidden');
-
-                resultsArea.classList.remove('hidden');
-                drawVisualization(charColorMap);
-            };
-
-            const drawVisualization = (charColorMap) => {
-                const canvas = document.getElementById('visualization-canvas');
-                if (!analysisResult || !canvas) return;
-                const ctx = canvas.getContext('2d');
-                const { original_text } = analysisResult;
-
-                const dpr = window.devicePixelRatio || 1;
-                const parentWidth = canvas.parentElement.clientWidth;
-                canvas.width = parentWidth * dpr;
-                const charSize = Math.min(24, parentWidth / 40);
-                const charsPerRow = Math.floor(parentWidth / charSize);
-                const numRows = Math.ceil(original_text.length / charsPerRow);
-                canvas.height = (numRows * charSize * 1.5) * dpr;
-                ctx.scale(dpr, dpr);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.font = `500 ${charSize * 0.8}px 'Roboto Mono'`;
-                
-                for(let i = 0; i < original_text.length; i++) {
-                    const char = original_text[i];
-                    const row = Math.floor(i / charsPerRow), col = i % charsPerRow;
-                    const x = col * charSize + (charSize / 2), y = row * charSize * 1.5 + (charSize / 2);
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    ctx.fillStyle = charColorMap[char] || '#9ca3af';
-
-                    if (hoveredChar === char) {
-                        ctx.fillStyle = '#000';
-                        ctx.fillRect(x - charSize/2, y - charSize/2, charSize, charSize);
-                        ctx.fillStyle = '#fff';
-                    }
-                    ctx.fillText(char, x, y);
-                }
-            };
-            
-            const runReconstruction = () => {
-                 if(!analysisResult) return;
-                 const { serialized_codex, original_text } = analysisResult;
-                 const reconstitutionOutput = document.getElementById('reconstitution-output');
-                 try {
-                    const rows = serialized_codex.split('§').map(r => r.split('|'));
-                    const originalLength = parseInt(rows[0][0].split(':')[1], 10);
-                    const algorithms = rows.slice(1);
-                    const canvas = new Array(originalLength).fill('');
-                    
-                    algorithms.forEach(algoRow => {
-                        const [char, dimsStr, pathDesc] = algoRow;
-                        const [pages, rowsDim, cols] = dimsStr.split('x').map(Number);
-                        const pathParts = pathDesc.split('|');
-                        const startPointStr = pathParts[0].substring(1);
-                        if (!startPointStr) return;
-                        
-                        const startPoint = startPointStr.split(',').map(Number);
-                        let currentPos = [...startPoint];
-                        let idx = Math.round(currentPos[0])*rowsDim*cols + Math.round(currentPos[1])*cols + Math.round(currentPos[2]);
-                        if (idx < originalLength) canvas[idx] = char;
-                        
-                        if (pathParts.length > 1) {
-                            pathParts.slice(1).forEach(vectorStr => {
-                                if (!vectorStr) return;
-                                const parts = vectorStr.split('*');
-                                const vector = parts[0].split(',').map(Number);
-                                const count = parts.length > 1 ? parseInt(parts[1], 10) : 1;
-                                for (let i = 0; i < count; i++) {
-                                    currentPos[0] += vector[0];
-                                    currentPos[1] += vector[1];
-                                    currentPos[2] += vector[2];
-                                    idx = Math.round(currentPos[0])*rowsDim*cols + Math.round(currentPos[1])*cols + Math.round(currentPos[2]);
-                                    if (idx < originalLength) canvas[idx] = char;
-                                }
-                            });
-                        }
-                    });
-
-                    const reconstitutedText = canvas.join('');
-                    const isLossless = reconstitutedText === original_text;
-                    reconstitutionOutput.textContent = `Verification: ${isLossless ? 'Perfect Match!' : 'Mismatch Detected.'}\\n\\n${reconstitutedText}`;
-                 } catch (e) {
-                     reconstitutionOutput.textContent = `Error during reconstruction: ${e.message}`;
-                 }
-                 reconstitutionOutput.classList.remove('hidden');
-            };
-
-            analyzeBtn.addEventListener('click', analyze);
-            
-            inputEl.value = "a" + "z"*18 + "a" + "z"*19 + "a" + "z"*18 + "a" + "z" * 60;
-            inputEl.value = inputEl.value.substring(0, 120);
-        });
-    </script>
-</body>
-</html>
-"""
+        return {
+            'engine': 'holographic',
+            'originalText': self.text,
+            'resonances': sorted(final_resonances, key=lambda r: r['offset']),
+            'motifs': final_motifs,
+            'numericals': final_numericals,
+            'huffmanDict': huffman_dict,
+            'encodedRemnant': encoded_remnant
+        }
 
 # --- Flask Server ---
 app = Flask(__name__)
-CORS(app) # Allow cross-origin requests from the browser
-
-@app.route('/')
-def home():
-    """Serves the main HTML page."""
-    return Response(HTML_CONTENT, mimetype='text/html')
+CORS(app)
 
 @app.route('/analyze', methods=['POST'])
-def analyze_route():
-    """The analysis endpoint."""
+def analyze():
     data = request.get_json()
-    if not data or 'text' not in data:
-        return jsonify({'error': 'Invalid request. Missing text.'}), 400
+    if not data or 'text' not in data or 'engine' not in data:
+        return jsonify({'error': 'Invalid request.'}), 400
     
     text = data['text']
+    engine_type = data['engine']
 
     try:
-        engine = HyperGeometrisomorphous(text)
+        if engine_type == 'hyper-geometrisomorphous':
+            engine = HyperGeometrisomorphous(text)
+        elif engine_type == 'holographic':
+            engine = HolographicEngine(text)
+        else:
+            return jsonify({'error': 'Unknown engine type.'}), 400
+        
         result = engine.generate_blueprint()
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': f'An error occurred during analysis: {str(e)}'}), 500
-
-def open_browser():
-    """Opens the web browser to the server's URL."""
-    webbrowser.open_new("http://localhost:5000")
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
 def display_instructions():
-    """Displays instructions for running the server and using the CLI."""
-    instructions = """
+    print("""
     This script serves a dual purpose: a web server for the GUI and a command-line tool.
 
     --- To use the Web Interface ---
-    1. Save this script as a single file (e.g., engine.py).
+    1. Clone the repository from GitHub.
     2. Install dependencies:
        pip install Flask Flask-Cors numpy
-    3. Run this script. It will start the server and automatically open the GUI in your browser:
-       python engine.py
-    
-    The server will be running at http://localhost:5000. Press CTRL+C to stop it.
-    """
-    print(instructions)
+    3. Run this script to start the server:
+       python engine_server.py
+    4. Open the accompanying .html file in your web browser.
+    """)
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help']:
         display_instructions()
     else:
-        print("Starting Hyper-Geometrisomorphous server at http://localhost:5000")
-        print("Your browser should open automatically.")
-        print("For usage instructions, run: python engine.py --help")
-        print("Press CTRL+C to stop the server.")
-        Timer(1, open_browser).start()
+        print("Starting Structural Compression Engine server at http://localhost:5000")
         app.run(host='0.0.0.0', port=5000)
 
