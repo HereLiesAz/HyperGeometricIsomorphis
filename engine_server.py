@@ -1,3 +1,28 @@
+import sys
+import subprocess
+
+def install_dependencies():
+    """
+    A necessary, if vulgar, concession to the reality of environmental setup.
+    """
+    required_packages = ['Flask', 'Flask-Cors', 'numpy']
+    print("Verifying dependencies...")
+    for package in required_packages:
+        try:
+            __import__(package.split('[')[0])
+            print(f"  - {package} is already satisfied.")
+        except ImportError:
+            print(f"  - Installing missing dependency: {package}...")
+            try:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+            except subprocess.CalledProcessError as e:
+                print(f"Error: Failed to install {package}. Please install it manually.", file=sys.stderr)
+                sys.exit(1)
+    print("All dependencies are satisfied.")
+
+# Run dependency check at the start
+install_dependencies()
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
@@ -5,7 +30,6 @@ import math
 import json
 import heapq
 import re
-import sys
 import os
 import webbrowser
 from threading import Timer
@@ -230,11 +254,9 @@ def display_instructions():
 
     --- To use the Web Interface ---
     1. Clone the repository from GitHub.
-    2. Install dependencies:
-       pip install Flask Flask-Cors numpy
-    3. Run this script to start the server:
+    2. Run this script. It will automatically install dependencies and start the server:
        python engine_server.py
-    4. Open the accompanying .html file in your web browser.
+    3. Open the accompanying .html file in your web browser.
     """)
 
 if __name__ == '__main__':
