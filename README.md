@@ -15,13 +15,21 @@ This engine performs compression via cosmology. It treats a linear string as a o
 
 ### Usage (Local Server)
 
-The engine is a disembodied mind (`engine_server.py`) that requires a body (`hyper-geometrisomorphous-spa.html`) to be seen. The following command will acquire the artifacts, install the necessary dependencies, and give the mind its nervous system.
+The engine is a disembodied mind (`engine_server.py`) that requires a body (`hyper-geometrisomorphous-spa.html`) to be seen. The following commands will acquire the artifacts, install the necessary dependencies, and give the mind its nervous system.
 
+First, you must replace `<repository_url>` and `<repository_directory>` with the actual URL and the name of the directory created by the clone operation.
+
+**For Linux/macOS (bash/zsh):**
 ```bash
 git clone <repository_url> && \
 cd <repository_directory> && \
 pip install Flask Flask-Cors numpy && \
 python engine_server.py
+```
+
+**For Windows (PowerShell):**
+```powershell
+git clone <repository_url>; cd <repository_directory>; pip install Flask, Flask-Cors, numpy; python engine_server.py
 ```
 
 Once the server is running, open the `hyper-geometrisomorphous-spa.html` file in your browser to give the nervous system a face. The web interface will communicate with the local server to perform its analysis.
