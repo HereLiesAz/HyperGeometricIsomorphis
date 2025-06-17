@@ -1,3 +1,5 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import numpy as np
 import math
 import json
@@ -47,9 +49,11 @@ class HyperGeometrisomorphous:
 
     def _encode_path(self, path):
         """Encodes a path of 3D points into a compact series of vectors."""
-        if len(path) < 2:
+        if not path:
             return ""
-        
+        if len(path) == 1:
+            return f"S{path[0][0]},{path[0][1]},{path[0][2]}"
+
         start_point = path[0]
         vectors = []
         for i in range(len(path) - 1):
@@ -57,7 +61,6 @@ class HyperGeometrisomorphous:
             p2 = np.array(path[i+1])
             vectors.append(tuple(p2 - p1))
             
-        # Further compress the vector list with run-length encoding
         if not vectors: return f"S{','.join(map(str, start_point))}"
         
         rle_vectors = []
@@ -79,7 +82,7 @@ class HyperGeometrisomorphous:
         """
         candidates = []
         all_indices = [i for i, char in enumerate(self.original_text) if char == char_to_find]
-        if len(all_indices) < 1: return None
+        if not all_indices: return None
 
         for dims in permutations:
             pages, rows, cols = dims
@@ -91,40 +94,31 @@ class HyperGeometrisomorphous:
                 c = idx % cols
                 points.append((p, r, c))
 
-            # Find the path and encode it
             path = self._find_shortest_path(points.copy())
             path_desc = self._encode_path(path)
 
             candidates.append({
-                'char': char_to_find,
                 'dims': dims,
                 'desc': path_desc,
                 'desc_len': len(path_desc)
             })
 
-        # Return the candidate with the shortest description
         if candidates:
             return min(candidates, key=lambda x: x['desc_len'])
         return None
 
     def generate_blueprint(self):
         """The main orchestration method."""
-        self.log("Phase 1: Universal Survey - Finding best path for each character...")
         permutations = self._get_volume_permutations()
         unique_chars = sorted(list(set(self.original_text)))
         
         winning_algorithms = {}
-        for i, char in enumerate(unique_chars):
-            self.log(f"  Finding most efficient scripture for '{char}' ({i+1}/{len(unique_chars)})...")
+        for char in unique_chars:
             best_algorithm = self.find_best_algorithm_for_char(char, permutations)
             if best_algorithm:
                 winning_algorithms[char] = best_algorithm
 
-        self.log("\nPhase 2: Codex Assembly - Building the 2D Matrix...")
-        
-        codex = []
-        codex.append([f"len:{self.length}"])
-
+        codex = [[f"len:{self.length}"]]
         for char, algo in sorted(winning_algorithms.items()):
             codex.append([
                 char, 
@@ -132,88 +126,36 @@ class HyperGeometrisomorphous:
                 algo['desc']
             ])
 
-        # Serialize the 2D matrix into a single string
         serialized_codex = "§".join(["|".join(row) for row in codex])
-        
-        self.log("\nProcess Complete.")
-        return serialized_codex
-
-    @staticmethod
-    def reconstruct(serialized_codex):
-        """Reconstructs the original string from the serialized 2D matrix."""
-        rows = [row.split('|') for row in serialized_codex.split('§')]
-        
-        metadata = rows[0]
-        original_length = int(metadata[0].split(':')[1])
-        
-        algorithms = rows[1:]
-        canvas = [''] * original_length # Use empty string as placeholder
-        
-        for algo_row in algorithms:
-            char, dims_str, path_desc = algo_row
-            pages, rows_dim, cols = map(int, dims_str.split('x'))
-            
-            # Decode the path
-            path_parts = path_desc.split('|')
-            start_point_str = path_parts[0][1:] # Remove 'S'
-            
-            if not start_point_str: continue # Skip if no points for this char
-
-            start_point = np.array(list(map(int, start_point_str.split(','))))
-            current_pos = start_point
-            
-            # Place the first point
-            idx = int(current_pos[0]*rows_dim*cols + current_pos[1]*cols + current_pos[2])
-            if idx < original_length: canvas[idx] = char
-            
-            # Follow the vectors
-            if len(path_parts) > 1:
-                for vector_str in path_parts[1:]:
-                    if not vector_str: continue
-                    parts = vector_str.split('*')
-                    vector = np.array(list(map(int, parts[0].split(','))))
-                    count = int(parts[1]) if len(parts) > 1 else 1
-                    
-                    for _ in range(count):
-                        current_pos += vector
-                        idx = int(current_pos[0]*rows_dim*cols + current_pos[1]*cols + current_pos[2])
-                        if idx < original_length: canvas[idx] = char
-                    
-        return "".join(canvas)
+        return {
+            "engine": "hyper-geometrisomorphous",
+            "codex": codex,
+            "serialized_codex": serialized_codex,
+            "original_text": self.original_text
+        }
 
 
-if __name__ == "__main__":
-    # Length is 120 = 3x5x8. 
-    # 'a' is placed in a somewhat structured way, 'b' is random noise.
-    base = list("b" * 120)
-    indices_a = [0, 10, 22, 35, 45, 55, 61, 73, 85, 99, 110, 119]
-    for i in indices_a: base[i] = 'a'
-    test_string = "".join(base)
+# --- Flask Server ---
+app = Flask(__name__)
+CORS(app) # Allow cross-origin requests
 
-    print(f"Original String ({len(test_string)} chars):")
-    print(test_string)
-    print("-" * 30)
-
-    isomorph = HyperGeometrisomorphous(test_string)
-    compiled_blueprint = isomorph.generate_blueprint()
-
-    print("\n--- COMPILED CODEX (Serialized) ---")
-    print(f"\"{compiled_blueprint}\"")
-    print("-" * 30)
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    data = request.get_json()
+    if not data or 'text' not in data:
+        return jsonify({'error': 'Invalid request. Missing text.'}), 400
     
-    original_size = len(test_string)
-    compressed_size = len(compiled_blueprint)
-    
-    print("\nSize Analysis:")
-    print(f"  - Original: {original_size} characters")
-    print(f"  - Compressed: {compressed_size} characters")
-    if original_size > 0:
-        ratio = (1 - compressed_size / original_size) * 100
-        print(f"  - Reduction: {ratio:.2f}%")
-        
-    print("\nReconstructing from blueprint...")
-    reconstructed_string = HyperGeometrisomorphous.reconstruct(compiled_blueprint)
-    
-    print("\nVerification:")
-    print(f"  - Reconstructed String: \"{reconstructed_string}\"")
-    print(f"  - Lossless: {reconstructed_string == test_string}")
+    text = data['text']
+
+    try:
+        engine = HyperGeometrisomorphous(text)
+        result = engine.generate_blueprint()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': f'An error occurred during analysis: {str(e)}'}), 500
+
+if __name__ == '__main__':
+    print("Starting Hyper-Geometrisomorphous server at http://localhost:5000")
+    print("Press CTRL+C to stop the server.")
+    app.run(host='0.0.0.0', port=5000)
+
