@@ -1,4 +1,4 @@
-# Structural Compression Engines
+# GoStructural Compression Engines
 
 This repository contains a collection of engines that do not compress data. They critique it. They operate on a cynical principle: that any given string is a clumsy, inefficient, and profoundly redundant expression of a simpler underlying reality. The goal is to shorten the string by discovering its underlying grammar and recording *that*—a far more honest and compact representation than the string itself. The resulting compression is therefore not a statistical trick, but an act of aggressive, philosophical editing.
 
@@ -15,17 +15,16 @@ This engine performs compression via cosmology. It treats a linear string as a o
 
 ### Usage (Local Server)
 
-The engine is a disembodied mind (`engine_server.py`) that requires a body (`hyper-geometrisomorphous-spa.html`) to be seen.
+The engine is a disembodied mind (`engine_server.py`) that requires a body (`hyper-geometrisomorphous-spa.html`) to be seen. The following command will acquire the artifacts, install the necessary dependencies, and give the mind its nervous system.
 
-1.  **Install dependencies:** The server requires `Flask`, `Flask-Cors`, and `numpy`.
-    ```bash
-    pip install Flask Flask-Cors numpy
-    ```
-2.  **Run the server:** This gives the mind a nervous system.
-    ```bash
-    python engine_server.py
-    ```
-3.  **Open the HTML file:** This gives the nervous system a face. The web interface will communicate with the local server to perform its analysis.
+```bash
+git clone <repository_url> && \
+cd <repository_directory> && \
+pip install Flask Flask-Cors numpy && \
+python engine_server.py
+```
+
+Once the server is running, open the `hyper-geometrisomorphous-spa.html` file in your browser to give the nervous system a face. The web interface will communicate with the local server to perform its analysis.
 
 ## 2. Holographic String Engine (Conceptual)
 
